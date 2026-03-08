@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sopa de letras</title>
+
+<style>
+
+body{
+font-family:system-ui,sans-serif;
+background:#000;
+color:#ffe4e6;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:20px;
+overflow-x:hidden;
+}
+
+#lightningCanvas{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+z-index:2;
+}
+
+.lightningFlash{
+position:fixed;
+inset:0;
+background:white;
+opacity:0;
+pointer-events:none;
+transition:opacity .15s;
+z-index:1;
+}
+
+h1{
+margin-bottom:.2rem;
+color:#ff3b3b;
+text-shadow:0 0 15px red;
+}
+
+.container{
+display:flex;
+gap:30px;
+margin-top:20px;
+flex-wrap:wrap;
+justify-content:center;
+z-index:3;
+position:relative;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(19,32px);
+grid-template-rows:repeat(19,32px);
+gap:3px;
+background:#050505;
+padding:12px;
+border-radius:16px;
+box-shadow:0 0 40px rgba(255,0,0,.5);
+}
+
+.cell{
+width:32px;
+height:32px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#1a0000;
+border-radius:6px;
+cursor:pointer;
+user-select:none;
+font-weight:600;
+color:#ffe4e6;
+transition:.15s;
+}
+
+.cell:hover{
+transform:scale(1.1);
+background:#440000;
+box-shadow:0 0 10px red;
+}
+
+.cell.selected{
+outline:2px solid red;
+background:#550000;
+}
+
+.cell.found{
+color:black;
+font-weight:700;
+}
+
+.side-panel{
+max-width:260px;
+}
+
+.panel-box{
+background:#050505;
+padding:14px 16px;
+border-radius:12px;
+margin-bottom:14px;
+box-shadow:0 0 25px rgba(255,0,0,.3);
+}
+
+.words-list{
+list-style:none;
+padding:0;
+margin:8px 0 0;
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:6px 10px;
+font-size:.92rem;
+}
+
+.words-list li{
+padding:3px 6px;
+border-radius:6px;
+background:#2a0000;
+}
+
+.words-list li.found-word{
+text-decoration:line-through;
+opacity:.5;
+}
+
+.secretBox{
+margin-top:30px;
+background:#050505;
+padding:18px 30px;
+border-radius:14px;
+box-shadow:0 0 25px rgba(255,0,0,.4);
+text-align:center;
+}
+
+.secretTitle{
+font-size:14px;
+opacity:.8;
+margin-bottom:8px;
+}
+
+.secretDisplay{
+font-size:28px;
+letter-spacing:8px;
+color:#ff4a4a;
+text-shadow:0 0 10px red;
+font-weight:700;
+}
+
+/* BOTON */
+
+.nextButton{
+
+margin-top:25px;
+padding:14px 26px;
+font-size:16px;
+border:none;
+border-radius:12px;
+background:#ff004c;
+color:white;
+cursor:pointer;
+transition:.3s;
+box-shadow:0 0 15px rgba(255,0,80,.6);
+
+}
+
+.nextButton:hover{
+transform:scale(1.05);
+}
+
+.nextButton:disabled{
+
+background:#444;
+cursor:not-allowed;
+box-shadow:none;
+opacity:.6;
+
+}
+
+.sprite{
+position:fixed;
+width:2px;
+height:140px;
+background:linear-gradient(to bottom,#ff0000,transparent);
+pointer-events:none;
+z-index:6;
+animation:raySprite .7s ease-out forwards;
+filter:drop-shadow(0 0 8px red);
+transform-origin:top;
+}
+
+@keyframes raySprite{
+
+0%{
+transform:scaleY(0) rotate(var(--angle));
+opacity:1;
+}
+
+50%{
+transform:scaleY(1.2) rotate(var(--angle));
+opacity:1;
+}
+
+100%{
+transform:scaleY(1.5) rotate(var(--angle));
+opacity:0;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="lightningCanvas"></canvas>
+<div class="lightningFlash" id="flash"></div>
+
+<h1>Sopa de letras</h1>
+<div>Encuentra las palabras.</div>
+
+<div class="container">
+
+<div id="grid" class="grid"></div>
+
+<div class="side-panel">
+
+<div class="panel-box">
+<strong>Palabras</strong>
+<ul id="wordsList" class="words-list"></ul>
+</div>
+
+</div>
+</div>
+
+<div class="secretBox">
+
+<div class="secretTitle">Palabra secreta</div>
+
+<div id="secretDisplay" class="secretDisplay"></div>
+
+<button id="nextBtn" class="nextButton" disabled>
+🔒 ¿Lista para la siguiente aventura?
+</button>
+
+</div>
+
+<script>
+
+const GRID_SIZE=19
+
+const words=[
+{ text:"FORTALEZA"},
+{ text:"EMPATIA"},
+{ text:"LIBERTAD"},
+{ text:"INSPIRACION"},
+{ text:"ZEN"},
+{ text:"DEDICACION"},
+{ text:"INTELIGENCIA"},
+{ text:"AMOR"},
+{ text:"DETERMINACION"},
+{ text:"ESPERANZA"},
+{ text:"LUZ"},
+{ text:"ADMIRACION"},
+{ text:"MARAVILLA"},
+{ text:"UNION"},
+{ text:"JUSTICIA"},
+{ text:"ENERGIA"},
+{ text:"RESPETO"}
+]
+
+const secretTarget="FELIZDIADELAMUJER"
+
+let secretProgress=Array(secretTarget.length).fill("_")
+
+function updateSecretDisplay(){
+
+document.getElementById("secretDisplay").textContent=
+secretProgress.join(" ")
+
+}
+
+function unlockButton(){
+
+const btn=document.getElementById("nextBtn")
+
+btn.disabled=false
+btn.textContent="✨ ¿Lista para la siguiente aventura?"
+
+}
+
+document.getElementById("nextBtn").onclick=()=>{
+
+window.location.href="puzzle.html"
+
+}
+
+const board=Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(""))
+const wordPlacements=[]
+
+const directions=[
+{dr:1,dc:0},{dr:-1,dc:0},{dr:0,dc:1},{dr:0,dc:-1},
+{dr:1,dc:1},{dr:1,dc:-1},{dr:-1,dc:1},{dr:-1,dc:-1}
+]
+
+function canPlace(word,row,col,dir){
+
+for(let i=0;i<word.length;i++){
+
+let r=row+dir.dr*i
+let c=col+dir.dc*i
+
+if(r<0||r>=GRID_SIZE||c<0||c>=GRID_SIZE)return false
+
+let ex=board[r][c]
+if(ex!==""&&ex!==word[i])return false
+
+}
+
+return true
+
+}
+
+function placeWord(i){
+
+let word=words[i].text
+
+for(let a=0;a<200;a++){
+
+let dir=directions[Math.floor(Math.random()*directions.length)]
+
+let r=Math.floor(Math.random()*GRID_SIZE)
+let c=Math.floor(Math.random()*GRID_SIZE)
+
+if(!canPlace(word,r,c,dir))continue
+
+let cells=[]
+
+for(let k=0;k<word.length;k++){
+
+let rr=r+dir.dr*k
+let cc=c+dir.dc*k
+
+board[rr][cc]=word[k]
+
+cells.push({r:rr,c:cc})
+
+}
+
+wordPlacements[i]={cells,found:false}
+
+return
+
+}
+
+}
+
+function fillBoard(){
+
+const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+for(let r=0;r<GRID_SIZE;r++)
+for(let c=0;c<GRID_SIZE;c++)
+if(board[r][c]==="")
+board[r][c]=letters[Math.floor(Math.random()*letters.length)]
+
+}
+
+function createGrid(){
+
+const grid=document.getElementById("grid")
+
+for(let r=0;r<GRID_SIZE;r++)
+for(let c=0;c<GRID_SIZE;c++){
+
+let cell=document.createElement("div")
+cell.className="cell"
+cell.dataset.row=r
+cell.dataset.col=c
+cell.textContent=board[r][c]
+
+grid.appendChild(cell)
+
+}
+
+}
+
+function renderWords(){
+
+const ul=document.getElementById("wordsList")
+
+words.forEach((w,i)=>{
+
+let li=document.createElement("li")
+li.textContent=w.text
+li.id="w"+i
+
+ul.appendChild(li)
+
+})
+
+}
+
+let start=null
+let selecting=false
+let cells=[]
+
+function getCell(r,c){
+return document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`)
+}
+
+document.getElementById("grid").addEventListener("mousedown",e=>{
+
+if(!e.target.classList.contains("cell"))return
+
+selecting=true
+start=e.target
+cells=[start]
+start.classList.add("selected")
+
+})
+
+document.addEventListener("mouseup",()=>{
+
+selecting=false
+checkWord()
+clear()
+
+})
+
+document.getElementById("grid").addEventListener("mouseover",e=>{
+
+if(!selecting)return
+if(!e.target.classList.contains("cell"))return
+
+clear()
+
+let r1=+start.dataset.row
+let c1=+start.dataset.col
+
+let r2=+e.target.dataset.row
+let c2=+e.target.dataset.col
+
+let dr=Math.sign(r2-r1)
+let dc=Math.sign(c2-c1)
+
+if(!(r1==r2||c1==c2||Math.abs(r2-r1)==Math.abs(c2-c1)))return
+
+let len=Math.max(Math.abs(r2-r1),Math.abs(c2-c1))+1
+
+cells=[]
+
+for(let i=0;i<len;i++){
+
+let cell=getCell(r1+dr*i,c1+dc*i)
+if(!cell)return
+cells.push(cell)
+cell.classList.add("selected")
+
+}
+
+})
+
+function clear(){
+cells.forEach(c=>c.classList.remove("selected"))
+}
+
+let lettersFound=0
+
+function checkWord(){
+
+let text=cells.map(c=>c.textContent).join("")
+let rev=text.split("").reverse().join("")
+
+words.forEach((w,i)=>{
+
+if(wordPlacements[i].found)return
+
+if(text===w.text||rev===w.text){
+
+wordPlacements[i].found=true
+
+cells.forEach(c=>{
+c.classList.add("found")
+c.style.background="red"
+})
+
+document.getElementById("w"+i).classList.add("found-word")
+
+spawnSprites(cells[Math.floor(cells.length/2)])
+
+if(lettersFound<secretTarget.length){
+
+secretProgress[lettersFound]=secretTarget[lettersFound]
+lettersFound++
+
+}
+
+updateSecretDisplay()
+
+if(!secretProgress.includes("_")){
+
+unlockButton()
+
+}
+
+}
+
+})
+
+}
+
+function spawnSprites(origin){
+
+const rect=origin.getBoundingClientRect()
+
+const x=rect.left+rect.width/2
+const y=rect.top+rect.height/2
+
+for(let i=0;i<30;i++){
+
+let s=document.createElement("div")
+s.className="sprite"
+
+let angle=Math.random()*360
+
+s.style.left=x+"px"
+s.style.top=y+"px"
+s.style.setProperty("--angle",angle+"deg")
+
+document.body.appendChild(s)
+
+setTimeout(()=>s.remove(),700)
+
+}
+
+}
+
+const canvas=document.getElementById("lightningCanvas")
+const ctx=canvas.getContext("2d")
+
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+
+function drawLightning(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+ctx.strokeStyle="white"
+ctx.lineWidth=2
+
+let x=Math.random()*canvas.width
+let y=0
+
+ctx.beginPath()
+ctx.moveTo(x,y)
+
+for(let i=0;i<20;i++){
+
+x+=Math.random()*80-40
+y+=Math.random()*40
+
+ctx.lineTo(x,y)
+
+}
+
+ctx.stroke()
+
+setTimeout(()=>ctx.clearRect(0,0,canvas.width,canvas.height),120)
+
+}
+
+const flash=document.getElementById("flash")
+
+function lightning(){
+
+drawLightning()
+
+flash.style.opacity=.8
+
+setTimeout(()=>flash.style.opacity=0,120)
+
+let next=1000+Math.random()*4000
+
+setTimeout(lightning,next)
+
+}
+
+lightning()
+
+words.forEach((_,i)=>placeWord(i))
+fillBoard()
+createGrid()
+renderWords()
+updateSecretDisplay()
+
+</script>
+
+</body>
+</html>

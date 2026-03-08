@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Rompecabezas del Sistema Solar</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+
+font-family:system-ui,sans-serif;
+
+background:
+radial-gradient(circle at 20% 30%,rgba(255,0,120,.15),transparent 40%),
+radial-gradient(circle at 80% 20%,rgba(0,200,255,.15),transparent 40%),
+radial-gradient(circle at 60% 80%,rgba(0,255,150,.15),transparent 40%),
+#020617;
+
+color:#ffe4ec;
+
+display:flex;
+flex-direction:column;
+align-items:center;
+
+padding:24px;
+
+min-height:200vh;
+
+overflow-x:hidden;
+overflow-y:auto;
+
+}
+
+#space{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+z-index:-1;
+pointer-events:none;
+}
+
+.container{
+position:relative;
+z-index:2;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+color:#f43f5e;
+margin-bottom:.3rem;
+text-shadow:
+0 0 10px rgba(244,63,94,.8),
+0 0 20px rgba(255,100,180,.5);
+}
+
+.subtitle{
+margin-bottom:16px;
+font-size:.95rem;
+color:#f9a8d4;
+max-width:700px;
+text-align:center;
+}
+
+.puzzle-wrapper{
+background:rgba(20,10,18,.6);
+backdrop-filter:blur(10px);
+padding:18px;
+border-radius:18px;
+box-shadow:
+0 0 40px rgba(236,72,153,.2),
+0 0 80px rgba(0,200,255,.1);
+}
+
+.puzzle-grid{
+display:grid;
+grid-template-columns:repeat(10,60px);
+grid-template-rows:repeat(10,60px);
+gap:3px;
+}
+
+.piece{
+width:60px;
+height:60px;
+border-radius:8px;
+background-image:url("foto-rompecabezas.jpg");
+background-size:1000% 1000%;
+background-repeat:no-repeat;
+cursor:pointer;
+transition:.2s;
+box-shadow:0 8px 20px rgba(0,0,0,.8);
+}
+
+.piece:hover{
+transform:scale(1.05);
+box-shadow:
+0 0 10px #ec4899,
+0 0 20px #38bdf8;
+}
+
+.piece.selected{
+outline:3px solid #ec4899;
+box-shadow:0 0 20px #ec4899;
+}
+
+.status{
+margin-top:12px;
+text-align:center;
+font-size:.95rem;
+color:#fda4af;
+}
+
+.status.complete{
+color:#22d3ee;
+font-weight:600;
+}
+
+.buttons{
+margin-top:16px;
+display:flex;
+gap:10px;
+justify-content:center;
+}
+
+.btn{
+padding:8px 16px;
+border-radius:999px;
+border:none;
+cursor:pointer;
+font-weight:600;
+font-size:.95rem;
+transition:.2s;
+}
+
+.btn-primary{
+background:linear-gradient(90deg,#ec4899,#f43f5e);
+color:white;
+}
+
+.btn-secondary{
+background:#2a0f1f;
+color:#ffe4ec;
+}
+
+.btn-primary:hover{
+transform:translateY(-1px);
+box-shadow:0 0 12px rgba(244,63,94,.7);
+}
+
+.btn-secondary:hover{
+background:#3f0d2e;
+}
+
+.note{
+margin-top:10px;
+font-size:.8rem;
+color:#f9a8d4;
+max-width:520px;
+text-align:center;
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="space"></canvas>
+
+<div class="container">
+
+<h1>Rompecabezas del Sistema Solar</h1>
+
+<div class="subtitle">
+Ordena el rompecabezas mientras el sistema solar gira detrás de ti 🌌
+</div>
+
+<div class="puzzle-wrapper">
+
+<div id="puzzle" class="puzzle-grid"></div>
+
+<div id="status" class="status">
+Ordena la imagen.
+</div>
+
+<div class="buttons">
+
+<button class="btn btn-secondary"
+onclick="window.location.href='index.html'">
+Volver a la sopa
+</button>
+
+<button id="nextButton"
+class="btn btn-primary"
+style="display:none;"
+onclick="window.location.href='letras.html'">
+Ir a agregar letras
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+/* CANVAS */
+
+const canvas=document.getElementById("space");
+const ctx=canvas.getContext("2d");
+
+let w=canvas.width=window.innerWidth;
+let h=canvas.height=window.innerHeight;
+
+window.addEventListener("resize",()=>{
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+w=canvas.width
+h=canvas.height
+});
+
+/* ESTRELLAS */
+
+const stars=[];
+for(let i=0;i<500;i++){
+stars.push({
+x:Math.random()*w,
+y:Math.random()*h,
+size:Math.random()*2,
+alpha:Math.random()
+});
+}
+
+/* PLANETAS */
+
+const planets=[
+
+{r:90,size:9,type:"mercury",speed:.012,angle:0},
+{r:130,size:12,type:"earth",speed:.009,angle:0},
+{r:180,size:11,type:"mars",speed:.007,angle:0},
+{r:240,size:18,type:"jupiter",speed:.005,angle:0},
+{r:320,size:16,type:"saturn",speed:.003,angle:0}
+
+];
+
+/* DIBUJAR PLANETA DETALLADO */
+
+function drawPlanet(x,y,size,type){
+
+ctx.shadowBlur=20;
+ctx.shadowColor="white";
+
+let g=ctx.createRadialGradient(x-size*.4,y-size*.4,1,x,y,size);
+
+if(type==="earth"){
+g.addColorStop(0,"#6ee7ff");
+g.addColorStop(.5,"#2563eb");
+g.addColorStop(1,"#021c40");
+}
+
+else if(type==="mars"){
+g.addColorStop(0,"#ffb4a2");
+g.addColorStop(.6,"#b91c1c");
+g.addColorStop(1,"#450a0a");
+}
+
+else if(type==="jupiter"){
+g.addColorStop(0,"#fde68a");
+g.addColorStop(.5,"#f59e0b");
+g.addColorStop(1,"#78350f");
+}
+
+else if(type==="saturn"){
+g.addColorStop(0,"#fef3c7");
+g.addColorStop(.5,"#d6b98c");
+g.addColorStop(1,"#5a4632");
+}
+
+else{
+g.addColorStop(0,"#d4d4d8");
+g.addColorStop(1,"#27272a");
+}
+
+ctx.beginPath();
+ctx.arc(x,y,size,0,Math.PI*2);
+ctx.fillStyle=g;
+ctx.fill();
+
+ctx.shadowBlur=0;
+
+/* textura */
+
+for(let i=0;i<size*2;i++){
+ctx.beginPath();
+ctx.arc(
+x+(Math.random()-.5)*size,
+y+(Math.random()-.5)*size,
+Math.random()*1.2,
+0,
+Math.PI*2
+);
+ctx.fillStyle="rgba(255,255,255,.05)";
+ctx.fill();
+}
+
+/* anillos saturno */
+
+if(type==="saturn"){
+
+ctx.beginPath();
+ctx.ellipse(x,y,size*2.5,size*.8,0,0,Math.PI*2);
+ctx.strokeStyle="rgba(220,200,160,.6)";
+ctx.lineWidth=2;
+ctx.stroke();
+
+ctx.beginPath();
+ctx.ellipse(x,y,size*3,size*1.1,0,0,Math.PI*2);
+ctx.strokeStyle="rgba(220,200,160,.3)";
+ctx.lineWidth=1;
+ctx.stroke();
+
+}
+
+}
+
+/* COMETAS */
+
+let comets=[];
+
+setInterval(()=>{
+comets.push({
+x:Math.random()*w,
+y:-20,
+vx:2+Math.random()*3,
+vy:2+Math.random()*3,
+life:200
+});
+},6000);
+
+/* LOOP */
+
+function draw(){
+
+ctx.clearRect(0,0,w,h);
+
+/* estrellas */
+
+stars.forEach(s=>{
+ctx.beginPath();
+ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+ctx.fillStyle="rgba(255,255,255,"+s.alpha+")";
+ctx.fill();
+});
+
+/* sol */
+
+const cx=w/2;
+const cy=h/2;
+
+const gradient=ctx.createRadialGradient(cx,cy,10,cx,cy,100);
+gradient.addColorStop(0,"#fff");
+gradient.addColorStop(.4,"#fbbf24");
+gradient.addColorStop(1,"rgba(255,200,0,0)");
+
+ctx.fillStyle=gradient;
+ctx.beginPath();
+ctx.arc(cx,cy,100,0,Math.PI*2);
+ctx.fill();
+
+/* planetas */
+
+planets.forEach(p=>{
+
+p.angle+=p.speed;
+
+const x=cx+Math.cos(p.angle)*p.r;
+const y=cy+Math.sin(p.angle)*p.r;
+
+ctx.strokeStyle="rgba(255,255,255,.05)";
+ctx.beginPath();
+ctx.arc(cx,cy,p.r,0,Math.PI*2);
+ctx.stroke();
+
+drawPlanet(x,y,p.size,p.type);
+
+});
+
+/* cometas */
+
+comets.forEach(c=>{
+c.x+=c.vx;
+c.y+=c.vy;
+c.life--;
+
+ctx.beginPath();
+ctx.arc(c.x,c.y,2,0,Math.PI*2);
+ctx.fillStyle="white";
+ctx.fill();
+
+ctx.beginPath();
+ctx.moveTo(c.x,c.y);
+ctx.lineTo(c.x-c.vx*12,c.y-c.vy*12);
+ctx.strokeStyle="rgba(255,255,255,.5)";
+ctx.stroke();
+});
+
+comets=comets.filter(c=>c.life>0);
+
+requestAnimationFrame(draw);
+
+}
+
+draw();
+
+/* PUZZLE (SIN CAMBIOS) */
+
+const COLS=10;
+const ROWS=10;
+const TOTAL_PIECES=COLS*ROWS;
+
+const puzzleEl=document.getElementById("puzzle");
+const statusEl=document.getElementById("status");
+const nextButton=document.getElementById("nextButton");
+
+function crearPiezas(){
+
+const indices=Array.from({length:TOTAL_PIECES},(_,i)=>i);
+
+mezclar(indices);
+
+indices.forEach(correctIndex=>{
+
+const pieza=document.createElement("div");
+
+pieza.className="piece";
+pieza.dataset.correct=correctIndex;
+
+const x=correctIndex%COLS;
+const y=Math.floor(correctIndex/COLS);
+
+pieza.style.backgroundPosition=
+`${(x/(COLS-1))*100}% ${(y/(ROWS-1))*100}%`;
+
+puzzleEl.appendChild(pieza);
+
+});
+
+}
+
+function mezclar(array){
+
+for(let i=array.length-1;i>0;i--){
+
+const j=Math.floor(Math.random()*(i+1));
+
+[array[i],array[j]]=[array[j],array[i]];
+
+}
+
+}
+
+let piezaSeleccionada=null;
+
+function manejarClickPieza(e){
+
+const target=e.target;
+
+if(!target.classList.contains("piece")) return;
+
+if(!piezaSeleccionada){
+
+piezaSeleccionada=target;
+piezaSeleccionada.classList.add("selected");
+return;
+
+}
+
+if(piezaSeleccionada===target){
+
+piezaSeleccionada.classList.remove("selected");
+piezaSeleccionada=null;
+return;
+
+}
+
+const correct1=piezaSeleccionada.dataset.correct;
+const correct2=target.dataset.correct;
+
+const bg1=piezaSeleccionada.style.backgroundPosition;
+const bg2=target.style.backgroundPosition;
+
+piezaSeleccionada.dataset.correct=correct2;
+target.dataset.correct=correct1;
+
+piezaSeleccionada.style.backgroundPosition=bg2;
+target.style.backgroundPosition=bg1;
+
+piezaSeleccionada.classList.remove("selected");
+piezaSeleccionada=null;
+
+comprobarCompleto();
+
+}
+
+function comprobarCompleto(){
+
+const piezas=Array.from(puzzleEl.children);
+
+const correcto=piezas.every((pieza,index)=>
+Number(pieza.dataset.correct)===index);
+
+if(correcto){
+
+statusEl.textContent="¡Rompecabezas completado!";
+statusEl.classList.add("complete");
+
+nextButton.style.display="inline-flex";
+
+}else{
+
+statusEl.textContent="Sigue ordenando la imagen.";
+statusEl.classList.remove("complete");
+
+}
+
+}
+
+puzzleEl.addEventListener("click",manejarClickPieza);
+
+crearPiezas();
+
+</script>
+
+</body>
+</html>

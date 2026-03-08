@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mensaje</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:system-ui,sans-serif;
+background:linear-gradient(160deg,#2a0f1f,#0b0b0f);
+color:#ffe4ec;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:24px;
+min-height:100vh;
+overflow:hidden;
+}
+
+#sakura{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+z-index:0;
+}
+
+.container{
+position:relative;
+z-index:2;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+color:#f43f5e;
+margin-bottom:0.3rem;
+text-shadow:0 0 10px rgba(244,63,94,0.6);
+}
+
+.subtitle{
+font-size:0.95rem;
+color:#f9a8d4;
+margin-bottom:16px;
+text-align:center;
+max-width:480px;
+}
+
+.box{
+background:linear-gradient(145deg,#2a0f1f,#140a12);
+padding:20px;
+border-radius:18px;
+box-shadow:0 0 30px rgba(236,72,153,0.25);
+max-width:520px;
+width:100%;
+text-align:center;
+backdrop-filter:blur(6px);
+}
+
+.mensaje{
+margin-bottom:15px;
+font-size:0.95rem;
+color:#fb7185;
+}
+
+.input-pass{
+width:100%;
+margin-top:10px;
+padding:10px;
+border-radius:8px;
+border:1px solid #3f0d2e;
+background:#0b0b0f;
+color:#ffe4ec;
+outline:none;
+}
+
+.input-pass:focus{
+border-color:#ec4899;
+box-shadow:0 0 6px rgba(236,72,153,0.6);
+}
+
+.buttons{
+display:flex;
+justify-content:space-between;
+gap:10px;
+margin-top:15px;
+}
+
+.btn{
+padding:8px 16px;
+border-radius:999px;
+border:none;
+cursor:pointer;
+font-weight:600;
+font-size:0.95rem;
+transition:.2s;
+}
+
+.btn-enter{
+background:linear-gradient(90deg,#ec4899,#f43f5e);
+color:white;
+}
+
+.btn-back{
+background:#2a0f1f;
+color:#ffe4ec;
+}
+
+.btn-enter:hover{
+transform:translateY(-1px);
+box-shadow:0 0 10px rgba(244,63,94,0.6);
+}
+
+.btn-back:hover{
+background:#3f0d2e;
+}
+
+.status{
+margin-top:10px;
+font-size:0.9rem;
+color:#fda4af;
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="sakura"></canvas>
+
+<div class="container">
+
+<h1>Mensaje</h1>
+
+<div class="subtitle">
+Mira un pequeño mensaje para tiii &lt;3
+</div>
+
+<div class="box">
+
+<p class="mensaje">
+
+Feliz dia de la mujer vaal, recuerda... eres una personita fuerte,
+valiente sobretodo unica y maravillosa y estoy muy orgulloso de ti
+mi princesa hermosa, te amoo.
+
+<br><br>
+
+pista: un circulo que nunca aprendio a romperse,
+un final que siempre encuentra su inicio.
+
+<br><br>
+
+Ingresa la contraseña.
+
+</p>
+
+<input type="password" id="password" placeholder="Ingresa la contraseña" class="input-pass"/>
+
+<div class="buttons">
+
+<button class="btn btn-back" onclick="window.location.href='puzzle.html'">
+Volver
+</button>
+
+<button class="btn btn-enter" id="checkPass">
+Entrar
+</button>
+
+</div>
+
+<div id="status" class="status"></div>
+
+</div>
+
+</div>
+
+<script>
+
+/* PASSWORD */
+
+const statusEl=document.getElementById("status");
+const checkButton=document.getElementById("checkPass");
+
+checkButton.addEventListener("click",()=>{
+
+const pass=document.getElementById("password").value;
+
+if(pass==="OUROBOROSx"){
+window.location.href="galeria.html";
+}else{
+statusEl.textContent="Contraseña incorrecta";
+}
+
+});
+
+/* CANVAS */
+
+const canvas=document.getElementById("sakura");
+const ctx=canvas.getContext("2d");
+
+let w=canvas.width=window.innerWidth;
+let h=canvas.height=window.innerHeight;
+
+window.addEventListener("resize",()=>{
+w=canvas.width=window.innerWidth;
+h=canvas.height=window.innerHeight;
+});
+
+/* PETALOS */
+
+let petals=[];
+let ripples=[];
+
+class Petal{
+
+constructor(){
+this.reset();
+}
+
+reset(){
+
+this.x=Math.random()*w;
+this.y=Math.random()*-100;
+
+this.size=6+Math.random()*6;
+
+this.speed=1+Math.random()*1.5;
+
+this.swing=Math.random()*2;
+
+this.rotation=Math.random()*360;
+
+this.sinking=false;
+
+}
+
+update(){
+
+if(!this.sinking){
+
+this.y+=this.speed;
+this.x+=Math.sin(this.y*0.01)*this.swing;
+
+if(this.y>h-60){
+
+this.sinking=true;
+ripples.push(new Ripple(this.x,this.y));
+
+}
+
+}else{
+
+this.y+=0.3;
+this.size*=0.99;
+
+if(this.size<1){
+this.reset();
+}
+
+}
+
+}
+
+draw(){
+
+ctx.save();
+
+ctx.translate(this.x,this.y);
+ctx.rotate(this.rotation);
+
+ctx.fillStyle="#ffc0cb";
+
+ctx.beginPath();
+ctx.moveTo(0,0);
+ctx.bezierCurveTo(-this.size,-this.size,this.size,-this.size,0,this.size);
+ctx.fill();
+
+ctx.restore();
+
+}
+
+}
+
+/* RIPPLE */
+
+class Ripple{
+
+constructor(x,y){
+this.x=x;
+this.y=y;
+this.radius=0;
+this.alpha=0.5;
+}
+
+update(){
+this.radius+=0.8;
+this.alpha*=0.97;
+}
+
+draw(){
+
+ctx.beginPath();
+ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+ctx.strokeStyle="rgba(255,182,193,"+this.alpha+")";
+ctx.stroke();
+
+}
+
+}
+
+/* CREAR PETALOS */
+
+for(let i=0;i<50;i++){
+petals.push(new Petal());
+}
+
+/* LOOP */
+
+function animate(){
+
+ctx.clearRect(0,0,w,h);
+
+/* AGUA */
+
+ctx.fillStyle="rgba(20,10,18,0.6)";
+ctx.fillRect(0,h-60,w,60);
+
+petals.forEach(p=>{
+p.update();
+p.draw();
+});
+
+ripples.forEach((r,i)=>{
+r.update();
+r.draw();
+if(r.alpha<0.01) ripples.splice(i,1);
+});
+
+requestAnimationFrame(animate);
+
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
