@@ -83,8 +83,8 @@ box-shadow:
 
 .puzzle-grid{
 display:grid;
-grid-template-columns:repeat(10,60px);
-grid-template-rows:repeat(10,60px);
+grid-template-columns:repeat(11,60px);
+grid-template-rows:repeat(11,60px);
 gap:3px;
 }
 
@@ -93,7 +93,7 @@ width:60px;
 height:60px;
 border-radius:8px;
 background-image:url("foto-rompecabezas.jpg");
-background-size:1000% 1000%;
+background-size:1100% 1100%;
 background-repeat:no-repeat;
 cursor:pointer;
 transition:.2s;
@@ -190,6 +190,11 @@ Ordena el rompecabezas mientras el sistema solar gira detrás de ti 🌌
 Ordena la imagen.
 </div>
 
+<!-- NUEVO: barra de progreso en porcentaje -->
+<div id="progress" class="status">
+Progreso: 0%
+</div>
+
 <div class="buttons">
 
 <button class="btn btn-secondary"
@@ -209,8 +214,6 @@ Ir a agregar letras
 </div>
 
 </div>
-
-
 
 <script>
 
@@ -244,19 +247,16 @@ alpha:Math.random()
 /* PLANETAS */
 
 const planets=[
-
 {r:90,size:9,type:"mercury",speed:.012,angle:0},
 {r:130,size:12,type:"earth",speed:.009,angle:0},
 {r:180,size:11,type:"mars",speed:.007,angle:0},
 {r:240,size:18,type:"jupiter",speed:.005,angle:0},
 {r:320,size:16,type:"saturn",speed:.003,angle:0}
-
 ];
 
 /* DIBUJAR PLANETA DETALLADO */
 
 function drawPlanet(x,y,size,type){
-
 ctx.shadowBlur=20;
 ctx.shadowColor="white";
 
@@ -267,25 +267,21 @@ g.addColorStop(0,"#6ee7ff");
 g.addColorStop(.5,"#2563eb");
 g.addColorStop(1,"#021c40");
 }
-
 else if(type==="mars"){
 g.addColorStop(0,"#ffb4a2");
 g.addColorStop(.6,"#b91c1c");
 g.addColorStop(1,"#450a0a");
 }
-
 else if(type==="jupiter"){
 g.addColorStop(0,"#fde68a");
 g.addColorStop(.5,"#f59e0b");
 g.addColorStop(1,"#78350f");
 }
-
 else if(type==="saturn"){
 g.addColorStop(0,"#fef3c7");
 g.addColorStop(.5,"#d6b98c");
 g.addColorStop(1,"#5a4632");
 }
-
 else{
 g.addColorStop(0,"#d4d4d8");
 g.addColorStop(1,"#27272a");
@@ -295,11 +291,9 @@ ctx.beginPath();
 ctx.arc(x,y,size,0,Math.PI*2);
 ctx.fillStyle=g;
 ctx.fill();
-
 ctx.shadowBlur=0;
 
 /* textura */
-
 for(let i=0;i<size*2;i++){
 ctx.beginPath();
 ctx.arc(
@@ -314,9 +308,7 @@ ctx.fill();
 }
 
 /* anillos saturno */
-
 if(type==="saturn"){
-
 ctx.beginPath();
 ctx.ellipse(x,y,size*2.5,size*.8,0,0,Math.PI*2);
 ctx.strokeStyle="rgba(220,200,160,.6)";
@@ -328,9 +320,7 @@ ctx.ellipse(x,y,size*3,size*1.1,0,0,Math.PI*2);
 ctx.strokeStyle="rgba(220,200,160,.3)";
 ctx.lineWidth=1;
 ctx.stroke();
-
 }
-
 }
 
 /* COMETAS */
@@ -350,11 +340,9 @@ life:200
 /* LOOP */
 
 function draw(){
-
 ctx.clearRect(0,0,w,h);
 
 /* estrellas */
-
 stars.forEach(s=>{
 ctx.beginPath();
 ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
@@ -363,7 +351,6 @@ ctx.fill();
 });
 
 /* sol */
-
 const cx=w/2;
 const cy=h/2;
 
@@ -378,11 +365,8 @@ ctx.arc(cx,cy,100,0,Math.PI*2);
 ctx.fill();
 
 /* planetas */
-
 planets.forEach(p=>{
-
 p.angle+=p.speed;
-
 const x=cx+Math.cos(p.angle)*p.r;
 const y=cy+Math.sin(p.angle)*p.r;
 
@@ -392,11 +376,9 @@ ctx.arc(cx,cy,p.r,0,Math.PI*2);
 ctx.stroke();
 
 drawPlanet(x,y,p.size,p.type);
-
 });
 
 /* cometas */
-
 comets.forEach(c=>{
 c.x+=c.vx;
 c.y+=c.vy;
@@ -417,31 +399,27 @@ ctx.stroke();
 comets=comets.filter(c=>c.life>0);
 
 requestAnimationFrame(draw);
-
 }
 
 draw();
 
-/* PUZZLE (SIN CAMBIOS) */
+/* PUZZLE */
 
-const COLS=10;
-const ROWS=10;
+const COLS=11;
+const ROWS=11;
 const TOTAL_PIECES=COLS*ROWS;
 
 const puzzleEl=document.getElementById("puzzle");
 const statusEl=document.getElementById("status");
 const nextButton=document.getElementById("nextButton");
+const progressEl=document.getElementById("progress");
 
 function crearPiezas(){
-
 const indices=Array.from({length:TOTAL_PIECES},(_,i)=>i);
-
 mezclar(indices);
 
 indices.forEach(correctIndex=>{
-
 const pieza=document.createElement("div");
-
 pieza.className="piece";
 pieza.dataset.correct=correctIndex;
 
@@ -452,45 +430,33 @@ pieza.style.backgroundPosition=
 `${(x/(COLS-1))*100}% ${(y/(ROWS-1))*100}%`;
 
 puzzleEl.appendChild(pieza);
-
 });
-
 }
 
 function mezclar(array){
-
 for(let i=array.length-1;i>0;i--){
-
 const j=Math.floor(Math.random()*(i+1));
-
 [array[i],array[j]]=[array[j],array[i]];
-
 }
-
 }
 
 let piezaSeleccionada=null;
 
 function manejarClickPieza(e){
-
 const target=e.target;
 
 if(!target.classList.contains("piece")) return;
 
 if(!piezaSeleccionada){
-
 piezaSeleccionada=target;
 piezaSeleccionada.classList.add("selected");
 return;
-
 }
 
 if(piezaSeleccionada===target){
-
 piezaSeleccionada.classList.remove("selected");
 piezaSeleccionada=null;
 return;
-
 }
 
 const correct1=piezaSeleccionada.dataset.correct;
@@ -509,34 +475,31 @@ piezaSeleccionada.classList.remove("selected");
 piezaSeleccionada=null;
 
 comprobarCompleto();
-
 }
 
 function comprobarCompleto(){
-
 const piezas=Array.from(puzzleEl.children);
+const total=piezas.length;
 
-const correcto=piezas.every((pieza,index)=>
-Number(pieza.dataset.correct)===index);
+let correctas=piezas.filter((pieza,index)=>
+Number(pieza.dataset.correct)===index
+).length;
 
-if(correcto){
+// actualizar porcentaje
+const porcentaje=Math.round((correctas/total)*100);
+progressEl.textContent=`Progreso: ${porcentaje}%`;
 
+if(correctas===total){
 statusEl.textContent="¡Rompecabezas completado!";
 statusEl.classList.add("complete");
-
 nextButton.style.display="inline-flex";
-
 }else{
-
 statusEl.textContent="Sigue ordenando la imagen.";
 statusEl.classList.remove("complete");
-
 }
-
 }
 
 puzzleEl.addEventListener("click",manejarClickPieza);
-
 crearPiezas();
 
 </script>
