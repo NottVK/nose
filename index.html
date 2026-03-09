@@ -579,9 +579,32 @@ updateSecretDisplay()
 canvas.width=window.innerWidth
 canvas.height=window.innerHeight
 
-window.addEventListener("resize",()=>{
+// --- TODO tu código existente aquí ---
+// creación del grid, palabras, sprites, contraseña, etc.
+
+window.addEventListener("resize", () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+});
+
+// soporte táctil para móviles
+document.getElementById("grid").addEventListener("touchstart", e => {
+    e.preventDefault();
+    if(e.target.classList.contains("cell")){
+        e.target.dispatchEvent(new Event('mousedown'));
+    }
+});
+document.getElementById("grid").addEventListener("touchmove", e => {
+    e.preventDefault();
+    let touch = e.touches[0];
+    let el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if(el && el.classList.contains("cell")){
+        el.dispatchEvent(new Event('mouseover'));
+    }
+});
+document.getElementById("grid").addEventListener("touchend", e => {
+    e.preventDefault();
+    document.dispatchEvent(new Event('mouseup'));
 });
 
 </script>
