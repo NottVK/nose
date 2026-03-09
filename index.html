@@ -587,24 +587,60 @@ window.addEventListener("resize", () => {
     canvas.height = window.innerHeight;
 });
 
-// soporte táctil para móviles
-document.getElementById("grid").addEventListener("touchstart", e => {
-    e.preventDefault();
-    if(e.target.classList.contains("cell")){
-        e.target.dispatchEvent(new Event('mousedown'));
-    }
-});
-document.getElementById("grid").addEventListener("touchmove", e => {
+// --- Soporte táctil completo ---
+const gridEl = document.getElementById("grid");
+let touchStartCell = null;
+
+// touchstart
+gridEl.addEventListener("touchstart", e => {
     e.preventDefault();
     let touch = e.touches[0];
     let el = document.elementFromPoint(touch.clientX, touch.clientY);
     if(el && el.classList.contains("cell")){
-        el.dispatchEvent(new Event('mouseover'));
+        touchStartCell = el;
+        selecting = true;
+        start = el;
+        cells = [start];
+        start.classList.add("selected");
     }
 });
-document.getElementById("grid").addEventListener("touchend", e => {
+
+// touchmove
+gridEl.addEventListener("touchmove", e => {
     e.preventDefault();
-    document.dispatchEvent(new Event('mouseup'));
+    let touch = e.touches[0];
+    let el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if(!selecting || !el || !el.classList.contains("cell")) return;
+
+    // Limpiar selección anterior
+    cells.forEach(c => c.classList.remove("selected"));
+
+    let r1 = +start.dataset.row;
+    let c1 = +start.dataset.col;
+    let r2 = +el.dataset.row;
+    let c2 = +el.dataset.col;
+
+    let dr = Math.sign(r2 - r1);
+    let dc = Math.sign(c2 - c1);
+
+    if(!(r1==r2 || c1==c2 || Math.abs(r2-r1)==Math.abs(c2-c1))) return;
+
+    let len = Math.max(Math.abs(r2-r1), Math.abs(c2-c1)) + 1;
+    cells = [];
+    for(let i=0; i<len; i++){
+        let cell = getCell(r1+dr*i, c1+dc*i);
+        if(!cell) continue;
+        cells.push(cell);
+        cell.classList.add("selected");
+    }
+});
+
+// touchend
+gridEl.addEventListener("touchend", e => {
+    e.preventDefault();
+    selecting = false;
+    checkWord();
+    clear();
 });
 
 </script>
